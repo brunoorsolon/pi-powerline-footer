@@ -116,6 +116,7 @@ You can promote any extension status key into its own dedicated powerline item. 
 - `position` (optional): `left`, `right`, or `secondary` (default `right`)
 - `prefix` (optional): text shown before the live status value
 - `color` (optional): any Pi theme color (`warning`, `accent`, etc.) or hex (`#RRGGBB`)
+- `transforms` (optional): ordered regex replacements scoped to this custom item. Each rule supports `replace`, `with`, and optional `flags` (`g` by default). Use `with: ""` to remove matched text.
 - `hideWhenMissing` (optional): hide item when no status is present (default `true`)
 - `excludeFromExtensionStatuses` (optional): omit this key from the aggregate `extension_statuses` segment (default `true`)
 
@@ -146,6 +147,53 @@ You can override the preset segment arrays while still reusing the preset's sepa
 ```
 
 `layout.left`, `layout.right`, and `layout.secondary` each replace that preset row when present. Omit a row to keep the preset row and its normal `customItems` appends. `leftSegments`, `rightSegments`, and `secondarySegments` aliases are also accepted.
+
+For an exact minimal footer with model, thinking, context, subscription/cost, and formatted quotas only:
+
+```json
+{
+  "powerline": {
+    "preset": "default",
+    "layout": {
+      "left": ["model", "thinking"],
+      "right": ["context_pct", "cost"],
+      "secondary": ["custom:quotas"]
+    },
+    "customItems": [
+      {
+        "id": "quotas",
+        "statusKey": "pi-quotas-usage",
+        "position": "secondary",
+        "transforms": [
+          {
+            "replace": "\\s*(?:\\x1b\\[[0-9;]*m)*left(?:\\x1b\\[[0-9;]*m)*\\s+",
+            "with": " "
+          },
+          {
+            "replace": "↺\\s*(?:\\x1b\\[[0-9;]*m)*in(?:\\x1b\\[[0-9;]*m)*\\s*",
+            "with": "↺ "
+          },
+          {
+            "replace": "\\)((?:(?:\\x1b\\[[0-9;]*m)|\\s)+)((?:\\x1b\\[[0-9;]*m)*\\d+[hd]:)",
+            "with": ")$1· $2"
+          },
+          {
+            "replace": "\\s*cap:(?:\\x1b\\[[0-9;]*m)*OK(?:\\x1b\\[[0-9;]*m)*\\s*",
+            "with": "",
+            "flags": "gi"
+          },
+          {
+            "replace": "\\s{2,}",
+            "with": " "
+          }
+        ],
+        "hideWhenMissing": true,
+        "excludeFromExtensionStatuses": true
+      }
+    ]
+  }
+}
+```
 
 If you still prefer the old style, `"powerline": "default"` continues to work.
 

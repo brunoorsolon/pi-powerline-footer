@@ -1,5 +1,5 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
-import type { BuiltinStatusLineSegmentId, ColorValue, CustomItemPosition, CustomStatusItem, PresetDef, StatusLineLayout, StatusLinePreset, StatusLineSegmentId } from "./types.ts";
+import type { BuiltinStatusLineSegmentId, ColorValue, CustomItemPosition, CustomStatusItem, CustomStatusTransform, PresetDef, StatusLineLayout, StatusLinePreset, StatusLineSegmentId } from "./types.ts";
 
 export interface PowerlineConfig {
   preset: StatusLinePreset;
@@ -108,6 +108,30 @@ function normalizeCustomPrefix(value: unknown): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+function normalizeCustomStatusTransform(raw: unknown): CustomStatusTransform | null {
+  if (!isRecord(raw)) return null;
+  const replace = typeof raw.replace === "string" ? raw.replace : null;
+  if (!replace) return null;
+
+  const flags = typeof raw.flags === "string" ? raw.flags : "g";
+  try {
+    new RegExp(replace, flags);
+  } catch {
+    return null;
+  }
+
+  const withValue = typeof raw.with === "string" ? raw.with : "";
+  return { replace, with: withValue, flags };
+}
+
+function normalizeCustomStatusTransforms(raw: unknown): CustomStatusTransform[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    const transform = normalizeCustomStatusTransform(entry);
+    return transform ? [transform] : [];
+  });
+}
+
 function normalizeCustomStatusItem(raw: unknown, idOverride?: string): CustomStatusItem | null {
   if (!isRecord(raw)) return null;
   const id = normalizeCustomItemId(idOverride ?? raw.id);
@@ -121,6 +145,7 @@ function normalizeCustomStatusItem(raw: unknown, idOverride?: string): CustomSta
     position: normalizeCustomItemPosition(raw.position),
     color: normalizeCustomColor(raw.color),
     prefix: normalizeCustomPrefix(raw.prefix),
+    transforms: normalizeCustomStatusTransforms(raw.transforms),
     hideWhenMissing: raw.hideWhenMissing !== false,
     excludeFromExtensionStatuses: raw.excludeFromExtensionStatuses !== false,
   };
@@ -262,6 +287,25 @@ export function normalizeExtensionStatusValue(value: string): string | null {
 
   const stripped = value.replace(/(\x1b\[[0-9;]*m|\s|·|[|])+$/, "");
   return visibleWidth(stripped) > 0 ? stripped : null;
+}
+
+export function applyCustomStatusTransforms(value: string, transforms: readonly CustomStatusTransform[] = []): string {
+  let transformed = value;
+  for (const transform of transforms) {
+    try {
+      transformed = transformed.replace(new RegExp(transform.replace, transform.flags), transform.with);
+    } catch {
+      continue;
+    }
+  }
+  return transformed;
+}
+
+export function normalizeCustomStatusValue(value: string, transforms: readonly CustomStatusTransform[] = []): string | null {
+  const normalized = normalizeExtensionStatusValue(value);
+  if (!normalized) return null;
+
+  return normalizeExtensionStatusValue(applyCustomStatusTransforms(normalized, transforms));
 }
 
 export function normalizeCompactExtensionStatus(value: string): string | null {

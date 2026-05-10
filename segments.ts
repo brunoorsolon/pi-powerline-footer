@@ -2,7 +2,7 @@ import { hostname as osHostname } from "node:os";
 import { basename } from "node:path";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { BuiltinStatusLineSegmentId, RenderedSegment, SegmentContext, SemanticColor, StatusLineSegment, StatusLineSegmentId } from "./types.ts";
-import { normalizeCompactExtensionStatus, normalizeExtensionStatusValue } from "./powerline-config.ts";
+import { normalizeCompactExtensionStatus, normalizeCustomStatusValue } from "./powerline-config.ts";
 import { fg, rainbow, applyColor } from "./theme.ts";
 import { getIcons, SEP_DOT, getThinkingText } from "./icons.ts";
 
@@ -456,7 +456,7 @@ function renderCustomSegment(id: `custom:${string}`, ctx: SegmentContext): Rende
   if (!custom) return { content: "", visible: false };
 
   const rawStatus = ctx.extensionStatuses.get(custom.statusKey);
-  const normalizedStatus = rawStatus ? normalizeExtensionStatusValue(rawStatus) : null;
+  const normalizedStatus = rawStatus ? normalizeCustomStatusValue(rawStatus, custom.transforms) : null;
   if (!normalizedStatus) {
     return custom.hideWhenMissing ? { content: "", visible: false } : { content: custom.prefix ?? custom.id, visible: true };
   }

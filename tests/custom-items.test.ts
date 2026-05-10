@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { collectHiddenExtensionStatusKeys, getNotificationExtensionStatuses, normalizeExtensionStatusValue, parsePowerlineConfig, mergeSegmentsWithCustomItems, nextPowerlineSettingWithOptions, nextPowerlineSettingWithPreset, normalizeCompactExtensionStatus } from "../powerline-config.ts";
+import { applyCustomStatusTransforms, collectHiddenExtensionStatusKeys, getNotificationExtensionStatuses, normalizeCustomStatusValue, normalizeExtensionStatusValue, parsePowerlineConfig, mergeSegmentsWithCustomItems, nextPowerlineSettingWithOptions, nextPowerlineSettingWithPreset, normalizeCompactExtensionStatus } from "../powerline-config.ts";
 
 test("parsePowerlineConfig supports object config with custom items", () => {
   const config = parsePowerlineConfig(
@@ -19,9 +19,34 @@ test("parsePowerlineConfig supports object config with custom items", () => {
   assert.equal(config.customItems[0].id, "ci");
   assert.equal(config.customItems[0].statusKey, "ci-status");
   assert.equal(config.customItems[1].statusKey, "review");
+  assert.deepEqual(config.customItems[1].transforms, []);
   assert.equal(config.customItems[1].hideWhenMissing, false);
   assert.equal(config.mouseScroll, true);
   assert.equal(config.fixedEditor, true);
+});
+
+test("parsePowerlineConfig supports per-custom-item status transforms", () => {
+  const config = parsePowerlineConfig(
+    {
+      customItems: [
+        {
+          id: "quotas",
+          statusKey: "pi-quotas-usage",
+          transforms: [
+            { replace: "\\s+left\\s+\\(↺\\s*in\\s*", with: " (↺ " },
+            { replace: "(?:^|\\s*(?:·|\\|)\\s*)cap:OK(?=\\s*(?:·|\\|)|$)", with: "", flags: "gi" },
+            { replace: "[", with: "ignored" },
+          ],
+        },
+      ],
+    },
+    ["default"],
+  );
+
+  assert.deepEqual(config.customItems[0].transforms, [
+    { replace: "\\s+left\\s+\\(↺\\s*in\\s*", with: " (↺ ", flags: "g" },
+    { replace: "(?:^|\\s*(?:·|\\|)\\s*)cap:OK(?=\\s*(?:·|\\|)|$)", with: "", flags: "gi" },
+  ]);
 });
 
 test("parsePowerlineConfig supports disabling mouse scroll", () => {
@@ -186,6 +211,31 @@ test("normalizeCompactExtensionStatus strips baked-in trailing separators", () =
 
 test("normalizeExtensionStatusValue keeps notification-style statuses renderable for custom items", () => {
   assert.equal(normalizeExtensionStatusValue("[review] queued · "), "[review] queued");
+});
+
+test("applyCustomStatusTransforms applies ordered regex replacements", () => {
+  const transforms = [
+    { replace: "\\s+left\\s+\\(↺\\s*in\\s*", with: " (↺ ", flags: "g" },
+    { replace: "(?:^|\\s*(?:·|\\|)\\s*)cap:OK(?=\\s*(?:·|\\|)|$)", with: "", flags: "gi" },
+  ];
+
+  assert.equal(
+    applyCustomStatusTransforms("5h:93% left (↺in 2h8m) · 7d:83% left (↺in 73h47m) · cap:OK", transforms),
+    "5h:93% (↺ 2h8m) · 7d:83% (↺ 73h47m)",
+  );
+});
+
+test("normalizeCustomStatusValue scopes transforms to the custom item", () => {
+  const quotaTransforms = [
+    { replace: "\\s+left\\s+\\(↺\\s*in\\s*", with: " (↺ ", flags: "g" },
+    { replace: "(?:^|\\s*(?:·|\\|)\\s*)cap:OK(?=\\s*(?:·|\\|)|$)", with: "", flags: "gi" },
+  ];
+
+  assert.equal(
+    normalizeCustomStatusValue("5h:93% left (↺in 2h8m) | cap:OK", quotaTransforms),
+    "5h:93% (↺ 2h8m)",
+  );
+  assert.equal(normalizeCustomStatusValue("plain · ", []), "plain");
 });
 
 test("getNotificationExtensionStatuses skips promoted hidden status keys", () => {
