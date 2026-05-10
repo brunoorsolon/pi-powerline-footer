@@ -97,6 +97,14 @@ export interface CustomStatusItem {
   excludeFromExtensionStatuses: boolean;
 }
 
+// Segment layout override from settings
+export interface StatusLineLayout {
+  leftSegments?: StatusLineSegmentId[];
+  rightSegments?: StatusLineSegmentId[];
+  /** Secondary row segments (shown in footer, above sub bar) */
+  secondarySegments?: StatusLineSegmentId[];
+}
+
 // Preset definition
 export interface PresetDef {
   leftSegments: BuiltinStatusLineSegmentId[];

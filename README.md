@@ -119,6 +119,34 @@ You can promote any extension status key into its own dedicated powerline item. 
 - `hideWhenMissing` (optional): hide item when no status is present (default `true`)
 - `excludeFromExtensionStatuses` (optional): omit this key from the aggregate `extension_statuses` segment (default `true`)
 
+### Custom layout from settings
+
+You can override the preset segment arrays while still reusing the preset's separator, colors, and per-segment options. Segment ids are the built-in names listed in [Segments](#segments), plus `custom:<id>` for items from `customItems`.
+
+```json
+{
+  "powerline": {
+    "preset": "default",
+    "layout": {
+      "left": ["model", "thinking", "shell_mode", "git"],
+      "right": ["context_pct", "cost"],
+      "secondary": ["custom:quotas"]
+    },
+    "customItems": [
+      {
+        "id": "quotas",
+        "statusKey": "pi-quotas-usage",
+        "position": "secondary",
+        "hideWhenMissing": true,
+        "excludeFromExtensionStatuses": true
+      }
+    ]
+  }
+}
+```
+
+`layout.left`, `layout.right`, and `layout.secondary` each replace that preset row when present. Omit a row to keep the preset row and its normal `customItems` appends. `leftSegments`, `rightSegments`, and `secondarySegments` aliases are also accepted.
+
 If you still prefer the old style, `"powerline": "default"` continues to work.
 
 ## Bash mode
@@ -320,7 +348,7 @@ Configure via preset options: `path: { mode: "full" }`
 
 ## Segments
 
-`model` · `thinking` · `shell_mode` · `path` · `git` · `subagents` · `token_in` · `token_out` · `token_total` · `cost` · `context_pct` · `context_total` · `time_spent` · `time` · `session` · `hostname` · `cache_read` · `cache_write`
+`model` · `thinking` · `shell_mode` · `path` · `git` · `subagents` · `token_in` · `token_out` · `token_total` · `cost` · `context_pct` · `context_total` · `time_spent` · `time` · `session` · `hostname` · `cache_read` · `cache_write` · `extension_statuses`
 
 ## Separators
 

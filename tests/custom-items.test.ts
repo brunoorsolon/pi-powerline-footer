@@ -44,6 +44,26 @@ test("parsePowerlineConfig supports disabling fixed editor", () => {
   assert.equal(config.fixedEditor, false);
 });
 
+test("parsePowerlineConfig supports explicit layout arrays", () => {
+  const config = parsePowerlineConfig(
+    {
+      preset: "default",
+      layout: {
+        left: ["model", "thinking", "custom:quotas", "unknown", "model"],
+        rightSegments: ["context_pct", "cost"],
+        secondary: ["extension_statuses"],
+      },
+    },
+    ["default", "compact"],
+  );
+
+  assert.deepEqual(config.layout, {
+    leftSegments: ["model", "thinking", "custom:quotas"],
+    rightSegments: ["context_pct", "cost"],
+    secondarySegments: ["extension_statuses"],
+  });
+});
+
 test("mergeSegmentsWithCustomItems appends custom segment ids by position", () => {
   const merged = mergeSegmentsWithCustomItems(
     {
@@ -62,6 +82,51 @@ test("mergeSegmentsWithCustomItems appends custom segment ids by position", () =
   assert.deepEqual(merged.leftSegments, ["path", "custom:ci"]);
   assert.deepEqual(merged.rightSegments, ["git", "custom:timer"]);
   assert.deepEqual(merged.secondarySegments, ["extension_statuses", "custom:review"]);
+});
+
+test("mergeSegmentsWithCustomItems uses explicit layout arrays without appending custom items to configured rows", () => {
+  const merged = mergeSegmentsWithCustomItems(
+    {
+      leftSegments: ["path"],
+      rightSegments: ["git"],
+      secondarySegments: ["extension_statuses"],
+      separator: "powerline",
+    },
+    [
+      { id: "ci", statusKey: "ci", position: "left", hideWhenMissing: true, excludeFromExtensionStatuses: true },
+      { id: "timer", statusKey: "timer", position: "right", hideWhenMissing: true, excludeFromExtensionStatuses: true },
+      { id: "review", statusKey: "review", position: "secondary", hideWhenMissing: true, excludeFromExtensionStatuses: true },
+    ],
+    {
+      leftSegments: ["model", "custom:ci"],
+      rightSegments: ["context_pct", "cost"],
+      secondarySegments: [],
+    },
+  );
+
+  assert.deepEqual(merged.leftSegments, ["model", "custom:ci"]);
+  assert.deepEqual(merged.rightSegments, ["context_pct", "cost"]);
+  assert.deepEqual(merged.secondarySegments, []);
+});
+
+test("mergeSegmentsWithCustomItems preserves custom append behavior for rows not configured by layout", () => {
+  const merged = mergeSegmentsWithCustomItems(
+    {
+      leftSegments: ["path"],
+      rightSegments: ["git"],
+      secondarySegments: ["extension_statuses"],
+      separator: "powerline",
+    },
+    [
+      { id: "ci", statusKey: "ci", position: "left", hideWhenMissing: true, excludeFromExtensionStatuses: true },
+      { id: "timer", statusKey: "timer", position: "right", hideWhenMissing: true, excludeFromExtensionStatuses: true },
+    ],
+    { leftSegments: ["model"] },
+  );
+
+  assert.deepEqual(merged.leftSegments, ["model"]);
+  assert.deepEqual(merged.rightSegments, ["git", "custom:timer"]);
+  assert.deepEqual(merged.secondarySegments, ["extension_statuses"]);
 });
 
 test("nextPowerlineSettingWithPreset preserves object settings", () => {
